@@ -138,3 +138,8 @@ for(file.i in file.i.vec){
   close(con)
 }
 
+## PROBLEM: chromStart=59160767 > max(chr19)=59128983 on Nimblegen 72K
+## array. Probably not hg19. sample 01_005 uploaded.
+
+## Same for 720K 10_296 chromStart=59160767 > max(chr19)=59128983.
+
