@@ -62,19 +62,32 @@ for(aCGH.txt in aCGH.txt.vec){
 }
 
 ## Both Nimblegen files types can be read using the following code.
-aCGH.dt <- fread("aCGH/Nimblegen_72K/01_003.txt")
-aCGH.dt <- fread("aCGH/Nimblegen_720K/01_300.txt")
+aCGH.txt <- "aCGH/Nimblegen_720K/01_300.txt"
 
+aCGH.txt <- "aCGH/Nimblegen_72K/01_003.txt"
+aCGH.dt <- fread(aCGH.txt)
+aCGH.dt[, chrom := factor(CHROMOSOME, paste0("chr", c(1:22, "X", "Y")))]
+
+p <- 
 ggplot()+
-  geom_point(aes(POSITION, RATIO, color="RATIO"),
+  scale_y_continuous("value", breaks=c(-3, 0, 3))+
+  scale_x_continuous("position on chromosome (mega bases)")+
+  ggtitle(aCGH.txt)+
+  geom_point(aes(POSITION/1e6, RATIO, color="RATIO"),
              pch=1,
              data=aCGH.dt)+
-  geom_point(aes(POSITION, RATIO_CORRECTED, color="RATIO_CORRECTED"),
+  geom_point(aes(POSITION/1e6, RATIO_CORRECTED, color="RATIO_CORRECTED"),
              pch=1,
              data=aCGH.dt)+
-  facet_grid(CHROMOSOME ~ .)+
+  facet_grid(chrom ~ .)+
+  scale_color_discrete("column")+
   theme_bw()+
-  theme(panel.margin=grid::unit(0, "cm"))
+  theme(panel.margin=grid::unit(0, "cm"))+
+  theme(legend.position="bottom")
+png("figure-aCGH-Nimblegen-720K-01-300.png",
+    height=1000, width=1000, res=100)
+print(p)
+dev.off()
 
 aCGH.txt.vec <- Sys.glob("aCGH/Nimblegen_*/*")
 for(aCGH.txt in aCGH.txt.vec){
