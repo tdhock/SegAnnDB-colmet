@@ -111,12 +111,15 @@ header.tmp <-
         'description="%s"')
 
 dir.create("bedGraph", showWarnings=FALSE)
-for(file.i in seq_along(profile.list)){
+file.i.vec <- seq_along(profile.list)
+valid.chroms <- paste0("chr", c(1:22, "X", "Y"))
+
+for(file.i in file.i.vec){
   sample.id <- sample.id.vec[[file.i]]
   file.txt <- names(profile.list)[[file.i]]
   header <- sprintf(header.tmp, sample.id, file.txt)
   profile <- profile.list[[file.i]]
-  maybe.na <- profile[, data.table(
+  maybe.na <- profile[chrom %in% valid.chroms, data.table(
     chrom,
     chromStart=sprintf("%d", as.integer(chromStart)),
     chromEnd=sprintf("%d", as.integer(chromEnd)),
