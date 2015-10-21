@@ -116,14 +116,14 @@ for(file.i in seq_along(profile.list)){
   file.txt <- names(profile.list)[[file.i]]
   header <- sprintf(header.tmp, sample.id, file.txt)
   profile <- profile.list[[file.i]]
-  one <- not.na[, data.table(
+  maybe.na <- profile[, data.table(
     chrom,
     chromStart=sprintf("%d", as.integer(chromStart)),
     chromEnd=sprintf("%d", as.integer(chromEnd)),
     logratio)]
-  some.na <- apply(is.na(one), 1, any)
-  one[some.na,]
-  not.na <- one[!some.na, ]
+  some.na <- apply(is.na(maybe.na), 1, any)
+  maybe.na[some.na,]
+  not.na <- maybe.na[!some.na, ]
   stopifnot(!is.na(not.na))
   cat(sprintf("%4d / %4d writing %d probes to %s\n",
               file.i, length(profile.list),
