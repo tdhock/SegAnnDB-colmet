@@ -3,7 +3,13 @@ works_with_R("3.2.2",
              "tdhock/namedCapture@a31a38be12d4dad4aec6257a47c0e2307679589c",
              data.table="1.9.6")
 
+oncoscan.txt.vec <- Sys.glob("OncoScan/*")
 all.txt.vec <- c(oncoscan.txt.vec, Sys.glob("aCGH/*/*"))
+new.txt.vec <- c(
+  oncoscan.txt.vec,
+  Sys.glob("aCGH/Agilent*/*"),
+  Sys.glob("h19_Nbl4Toby/*/*"))
+stopifnot(length(all.txt.vec) == length(new.txt.vec))
 
 chr.pos.pattern <- paste0(
   "(?<chrom>chr.*?)",
@@ -14,7 +20,6 @@ chr.pos.pattern <- paste0(
 
 profile.list <- list()
 
-oncoscan.txt.vec <- Sys.glob("OncoScan/*")
 for(oncoscan.txt in oncoscan.txt.vec){
   oncoscan.dt <- fread(oncoscan.txt)
   oncoscan.dt[, chrom := {
@@ -89,14 +94,14 @@ png("figure-aCGH-Nimblegen-720K-01-300.png",
 print(p)
 dev.off()
 
-aCGH.txt.vec <- Sys.glob("aCGH/Nimblegen_*/*")
+aCGH.txt.vec <- Sys.glob("h19_Nbl4Toby/*/*")
 for(aCGH.txt in aCGH.txt.vec){
   aCGH.dt <- fread(aCGH.txt)
   ## ASSUME RATIO_CORRECTED is logratio
-  aCGH.dt[, logratio := RATIO_CORRECTED]
-  aCGH.dt[, chrom := CHROMOSOME]
-  aCGH.dt[, chromStart := POSITION]
-  aCGH.dt[, chromEnd := POSITION+1]
+  aCGH.dt[, logratio := logRatio]
+  aCGH.dt[, chrom := Chr]
+  aCGH.dt[, chromStart := Pos]
+  aCGH.dt[, chromEnd := Pos+1]
   profile.list[[aCGH.txt]] <- aCGH.dt
 }
 
@@ -104,7 +109,7 @@ not.processed <- all.txt.vec[!all.txt.vec %in% names(profile.list)]
 stopifnot(length(not.processed) == 0)
 
 just.sample <- gsub("logratio.|.txt", "", basename(names(profile.list)))
-just.dir <- sub("aCGH/", "", dirname(names(profile.list)))
+just.dir <- sub("(h19_Nbl4Toby|aCGH)/", "", dirname(names(profile.list)))
 sample.id.vec <- gsub("_", "-", paste0(just.dir, "_", just.sample))
 stopifnot(length(unique(sample.id.vec)) == length(all.txt.vec))
 
@@ -114,7 +119,7 @@ header.tmp <-
         'db=hg19',
         'export=yes',
         'visibility=full',
-        'maxSegments=20',
+        'maxSegments=%d',
         'alwaysZero=on',
         'share=curie.fr',
         'graphType=points',
@@ -130,7 +135,8 @@ valid.chroms <- paste0("chr", c(1:22, "X", "Y"))
 for(file.i in file.i.vec){
   sample.id <- sample.id.vec[[file.i]]
   file.txt <- names(profile.list)[[file.i]]
-  header <- sprintf(header.tmp, sample.id, file.txt)
+  maxSegments <- if(grepl("720k", sample.id))50 else 20
+  header <- sprintf(header.tmp, maxSegments, sample.id, file.txt)
   profile <- profile.list[[file.i]]
   maybe.na <- profile[chrom %in% valid.chroms, data.table(
     chrom,
@@ -141,10 +147,10 @@ for(file.i in file.i.vec){
   maybe.na[some.na,]
   not.na <- maybe.na[!some.na, ]
   stopifnot(!is.na(not.na))
+  bedGraph.gz <- file.path("bedGraph", paste0(sample.id, ".bedGraph.gz"))
   cat(sprintf("%4d / %4d writing %d probes to %s\n",
               file.i, length(profile.list),
               nrow(not.na), bedGraph.gz))
-  bedGraph.gz <- file.path("bedGraph", paste0(sample.id, ".bedGraph.gz"))
   con <- gzfile(bedGraph.gz, "w")
   writeLines(header, con)
   write.table(not.na, con, quote=FALSE, row.names=FALSE, col.names=FALSE)
